@@ -35,4 +35,4 @@ while 1:
     print(PIXEL.getcolors())
     print(getColor(x,y))
     print("===========================")
-    # time.sleep(1)
+    # time.sleep(0.1)

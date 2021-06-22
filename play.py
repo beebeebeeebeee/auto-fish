@@ -8,6 +8,8 @@ from csv import writer
 import numpy
 import cv2 as cv
 import pytesseract
+from pynput.mouse import Button, Controller
+mouse = Controller()
 
 pyautogui.PAUSE = 0
 
@@ -15,16 +17,29 @@ pyautogui.PAUSE = 0
 ###########
 # Change Here
 ###########
-screen = [[90, 180], [1135, 758]]
-half = 1
-# 驚嘆號位置
-target = [683, 201]
-# fail chat
-fail = [613, 424]
-
 # Target rod index
 rod = 5
+monitor_index = 1
+half = 1
 
+def get_mouse():
+    x,y = mouse.position
+    return (round(x),round(y))
+
+input("Press Enter to get screen 1...")
+(screenX, screenY) = get_mouse()
+input("Press Enter to get screen 2...")
+(screenX2, screenY2) = get_mouse()
+input("Press Enter to get 驚嘆號...")
+(targetX, targetY) = get_mouse()
+input("Press Enter to get fail chat...")
+(failX, failY) = get_mouse()
+
+screen = [[screenX, screenY], [screenX2, screenY2]]
+# 驚嘆號位置
+target = [targetX, targetY]
+# fail chat
+fail = [failX, failY]
 ###########
 # Static Fix Value
 ###########
@@ -79,7 +94,7 @@ with mss() as sct:
 
 def add_csv(list_of_elem,  file_name="record.csv"):
     # Open file in append mode
-    with open(file_name, 'a+', newline='') as write_obj:
+    with open(file_name, 'a+', newline='', encoding='utf-8-sig') as write_obj:
         # Create a writer object from csv module
         csv_writer = writer(write_obj)
         # Add contents of list as last row in the csv file
@@ -88,7 +103,7 @@ def add_csv(list_of_elem,  file_name="record.csv"):
 
 def getColor(x, y):
     with mss() as sct:
-        sct_img = sct.grab(sct.monitors[1])
+        sct_img = sct.grab(sct.monitors[monitor_index])
         x = x*crop_factor
         y = y*crop_factor
         # Convert to PIL.Image
@@ -96,11 +111,11 @@ def getColor(x, y):
         return img.load()[x, y]
 
 
-def getImageText(arr, arr2):
+def getImageText(arr, arr2, this_time):
     (x, y, x2, y2) = arr
     (nx, ny, nx2, ny2) = arr2
     with mss() as sct:
-        sct_img = sct.grab(sct.monitors[1])
+        sct_img = sct.grab(sct.monitors[monitor_index])
         x = x*crop_factor
         y = y*crop_factor
         x2 = x2*crop_factor
@@ -114,7 +129,9 @@ def getImageText(arr, arr2):
                               sct_img.bgra, "raw", "BGRX").crop((x, y, x2, y2))
         img2 = Image.frombytes("RGB", sct_img.size,
                               sct_img.bgra, "raw", "BGRX").crop((nx, ny, nx2, ny2))
-        return (pytesseract.image_to_string(img, lang='chi_tra').replace('\n','').replace(' ','').strip().strip(), pytesseract.image_to_string(img2, lang='digits').replace('\n','').replace(' ','').strip().strip())
+        name = pytesseract.image_to_string(img, lang='chi_tra').replace('\n','').replace(' ','').strip().strip()
+        price = int(pytesseract.image_to_string(img2, lang='digits').replace('\n','').replace(' ','').strip().strip())
+        add_csv(["true", name, price, this_time, csv_start_time])
 
 
 def move(val):
@@ -160,9 +177,7 @@ def main():
             for x in range(3):
                 move(fix["paid"])
                 pyautogui.click()
-                if(x==2):
-                    time.sleep(1.5)
-                time.sleep(0.5)
+                time.sleep(2.5)
             continue
 
         # checking
@@ -176,14 +191,12 @@ def main():
                         count = count+1
                         this_time = round(time.time() - start_time,2)
                         # get the image (name)
-                        (name, price) = getImageText(fish_name, fish_price)
+                        (name, price) = getImageText(fish_name, fish_price, this_time)
                         print("Got it! {} %ss\nName: {}\nPrice: {}".format(count,name,price) %
                               (this_time))
                         # wait for keep button
                         move(keep)
                         pyautogui.click()
-                        add_csv(["true", name, price,
-                                 this_time, csv_start_time])
                         time.sleep(0.5)
                         break
                     # 斷線
@@ -197,5 +210,6 @@ def main():
 
 
 # exit()
+input("Press Enter Start!")
 main()
 # print(getImageText((159, 86,404,250),True))

@@ -1,6 +1,7 @@
-fix = {
-    "menu": [1120, 131],
-    "fix": [[950, 476],[1180, 476],[1410, 476],[950, 771],[1180, 771],[1410, 771]]
-}
+import keyboard
+from pynput.mouse import Button, Controller
+mouse = Controller()
 
-print(fix["fix"][0])
+input("Press Enter to continue...")
+x,y = mouse.position
+print("[%s, %s]" % (round(x),round(y)))

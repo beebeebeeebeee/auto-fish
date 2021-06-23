@@ -1,3 +1,4 @@
-record.csv
+*.csv
+*.txt
 *screenshot*
 test.py

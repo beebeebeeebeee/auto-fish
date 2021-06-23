@@ -7,15 +7,16 @@ mouse = Controller()
 import time
 
 crop_factor = 1
+mon = 2
 
 with mss() as sct:
-    sct_img = sct.grab(sct.monitors[1])
+    sct_img = sct.grab(sct.monitors[mon])
     if(sct_img.width > pyautogui.size().width):
         crop_factor = sct_img.width/pyautogui.size().width
 
 def getColor(x, y):
     with mss() as sct:
-        sct_img = sct.grab(sct.monitors[1])
+        sct_img = sct.grab(sct.monitors[mon])
         x = x*crop_factor
         y = y*crop_factor
         # Convert to PIL.Image
@@ -35,4 +36,4 @@ while 1:
     print(PIXEL.getcolors())
     print(getColor(x,y))
     print("===========================")
-    # time.sleep(0.1)
+    time.sleep(0.5)

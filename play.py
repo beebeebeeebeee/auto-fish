@@ -87,8 +87,8 @@ keep = [(screen[1][0]-screen[0][0])*0.76195219123+screen[0][0],
         (screen[1][1]-screen[0][1])*0.80831826401+screen[0][1]]
 
 fix = {
-    "bag": [(screen[1][0]-screen[0][0])*0.9612299465+screen[0][0],
-            (screen[1][1]-screen[0][1])*0.5404761905+screen[0][1]],
+    "bag": [(screen[1][0]-screen[0][0])*0.9457167091+screen[0][0],
+            (screen[1][1]-screen[0][1])*0.5060422961+screen[0][1]],
     "menu": [(screen[1][0]-screen[0][0])*0.7239304813+screen[0][0],
              (screen[1][1]-screen[0][1])*0.06904761905+screen[0][1]],
     "fix": [[(screen[1][0]-screen[0][0])*0.6102941176+screen[0][0],
@@ -279,7 +279,6 @@ def main():
                                 ["false", "", "", this_time, csv_start_time])
                             break
                 break
-
 
 # exit()
 input("Press Enter Start!")

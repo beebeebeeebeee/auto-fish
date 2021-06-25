@@ -13,15 +13,15 @@ import numpy
 import cv2 as cv
 import pytesseract
 from pynput.mouse import Button, Controller
-mouse = Controller()
 
+mouse = Controller()
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 pyautogui.PAUSE = 0
 load_dotenv(dotenv_path=Path('./.env'))
 
 
 ###########
-# Change Here
+# env val
 ###########
 # Target rod index (start at index 0)
 rod = int(os.getenv('rod'))-1
@@ -29,30 +29,35 @@ user_name = os.getenv('user_name')
 user_input = True if os.getenv('user_input') == "True" else False
 monitor_index = int(os.getenv('monitor_index'))
 
+###########
+# default val
+###########
 half = 1
-
+crop_factor = 1
+csv_start_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+start_time = time.time()
 
 def get_mouse():
     x, y = mouse.position
     return (round(x), round(y))
 
 
+print("正在使用:{}\n魚竿:第{}支\n重新設定:{}".format(user_name,rod+1,user_input))
+
 if user_input:
-    input("Press Enter to get screen 1...")
+    input("指住左上角按Enter...")
     (screenX, screenY) = get_mouse()
-    input("Press Enter to get screen 2...")
+    input("指住右下角按Enter...")
     (screenX2, screenY2) = get_mouse()
-    input("Press Enter to get 驚嘆號...")
+    input("指住感嘆號按Enter...")
     (targetX, targetY) = get_mouse()
-    input("Press Enter to get fail chat...")
-    (failX, failY) = get_mouse()
     dict = {'screenX': screenX, 'screenY': screenY, 'screenX2': screenX2, 'screenY2': screenY2,
-            'targetX': targetX, 'targetY': targetY, 'failX': failX, 'failY': failY}
-    file = open('{}_input.txt'.format(user_name), 'wb')
+            'targetX': targetX, 'targetY': targetY}
+    file = open('./data/{}_input.txt'.format(user_name), 'wb')
     pickle.dump(dict, file)
     file.close()
 else:
-    file = open('{}_input.txt'.format(user_name), 'rb')
+    file = open('./data/{}_input.txt'.format(user_name), 'rb')
     dict = pickle.load(file)
     screenX = dict['screenX']
     screenY = dict['screenY']
@@ -60,17 +65,12 @@ else:
     screenY2 = dict['screenY2']
     targetX = dict['targetX']
     targetY = dict['targetY']
-    failX = dict['failX']
-    failY = dict['failY']
     file.close()
-
 
 
 screen = [[screenX, screenY], [screenX2, screenY2]]
 # 驚嘆號位置
 target = [targetX, targetY]
-# fail chat
-fail = [failX, failY]
 ###########
 # Static Fix Value
 ###########
@@ -113,10 +113,6 @@ fish_price = ((screen[1][0]-screen[0][0])*0.7029608405+screen[0][0],
               0.923591213+screen[0][0],
               (screen[1][1]-screen[0][1])*0.5215889465+screen[0][1])
 
-csv_start_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-
-crop_factor = 1
-
 with mss() as sct:
     sct_img = sct.grab(sct.monitors[1])
     if(sct_img.width > pyautogui.size().width):
@@ -135,13 +131,13 @@ status = ""
 
 def update_status():
     global count, repair, success, failed, status
-    print("===================================\nSummary:\nCount: {} | Repair: {}\nSuccess: {} | Failed: {}\n{}\n===================================".format(
+    print("===================================\n報告:\n總計: {} | 修復: {}\n成功: {} | 失敗: {}\n{}\n===================================".format(
         count, repair, success, failed, status))
 
 
 def add_csv(list_of_elem,  user_name=user_name):
     # Open file in append mode
-    with open("{}.csv".format(user_name), 'a+', newline='', encoding='utf-8-sig') as write_obj:
+    with open("./data/{}.csv".format(user_name), 'a+', newline='', encoding='utf-8-sig') as write_obj:
         # Create a writer object from csv module
         csv_writer = writer(write_obj)
         # Add contents of list as last row in the csv file
@@ -160,7 +156,7 @@ def getColor(x, y):
 
 
 def getImageText(arr, arr2, this_time):
-    global status
+    global status, count
     (x, y, x2, y2) = arr
     (nx, ny, nx2, ny2) = arr2
     with mss() as sct:
@@ -178,12 +174,14 @@ def getImageText(arr, arr2, this_time):
                               sct_img.bgra, "raw", "BGRX").crop((x, y, x2, y2))
         img2 = Image.frombytes("RGB", sct_img.size,
                                sct_img.bgra, "raw", "BGRX").crop((nx, ny, nx2, ny2))
+        # img.save("./images/name/{}_{}.jpg".format(start_time, count))
+        # img2.save("./images/price/{}_{}.jpg".format(start_time, count))
         name = pytesseract.image_to_string(img, lang='chi_tra').replace(
             '\n', '').replace(' ', '').strip().strip()
         price = pytesseract.image_to_string(img2, lang='digits').replace(
             '\n', '').replace(' ', '').strip().strip()
         add_csv(["true", name, price, this_time, csv_start_time])
-        status = ("Got it! %ss\nName: {}\nPrice: {}".format(name, price) %
+        status = ("釣到! %s秒\n名稱: {}\n價錢: {}".format(name, price) %
                   (this_time))
         update_status()
 
@@ -200,7 +198,7 @@ def fishing():
     pyautogui.click()
     # ready position
     move(get)
-    status = "start fishing"
+    status = "開始釣魚"
     update_status()
 
 
@@ -222,9 +220,9 @@ def main():
         fishing()
 
         # check the rod failed
-        time.sleep(2)
-        if getColor(fail[0], fail[1]) == (255, 255, 255):
-            status = "rod fail"
+        time.sleep(3)
+        if getColor(fix["bag"][0], fix["bag"][1]) == (227, 64, 65):
+            status = "釣竿失敗"
             repair = repair + 1
             update_status()
 
@@ -240,16 +238,23 @@ def main():
             for x in range(3):
                 move(fix["paid"])
                 pyautogui.click()
-                time.sleep(2.5)
+                time.sleep(2.5-x)
             continue
 
         # checking
-        status = "checking"
+        status = "驗查中"
         update_status()
 
         start_time = time.time()
         for k in range(0, 100000000):
+            if(time.time()-start_time > 60):
+                status = (
+                    "超過60秒沒有動作!重新開始")
+                update_status()
+                break
             if getColor(target[0], target[1]) == (255, 255, 255):
+                status = ("有感嘆號,釣緊")
+                update_status()
                 move(get)
                 pyautogui.click()
                 while True:
@@ -266,21 +271,18 @@ def main():
                         time.sleep(0.5)
                         break
                     # 斷線
-                    elif getColor(fail[0], fail[1]) == (255, 255, 255):
-                        time.sleep(2.5)
-                        if getColor(fix["bag"][0], fix["bag"][1]) == (227, 64, 65):
-                            count = count+1
-                            failed = failed + 1
-                            this_time = round(time.time() - start_time, 2)
-                            status = ("Failed! %ss" %
-                                      (this_time))
-                            update_status()
-                            add_csv(
-                                ["false", "", "", this_time, csv_start_time])
-                            break
+                    elif getColor(fix["bag"][0], fix["bag"][1]) == (227, 64, 65):
+                        count = count+1
+                        failed = failed + 1
+                        this_time = round(time.time() - start_time, 2)
+                        status = ("失敗! %s秒" %
+                                  (this_time))
+                        update_status()
+                        add_csv(
+                            ["false", "", "", this_time, csv_start_time])
+                        break
                 break
 
-# exit()
-input("Press Enter Start!")
+
+input("按Enter開始")
 main()
-# print(getImageText((159, 86,404,250),True))

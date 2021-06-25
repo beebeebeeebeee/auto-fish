@@ -1,4 +1,5 @@
 *.csv
-*.txt
+data/*
 *screenshot*
 test.py
+images/*

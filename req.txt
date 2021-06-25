@@ -1,0 +1,13 @@
+pickle-mixin
+python-dotenv
+pyautogui
+datetime
+pillow
+mss
+python-csv
+numpy
+opencv-python
+pytesseract
+tesseract
+pynput
+pathlib

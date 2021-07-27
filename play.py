@@ -27,7 +27,9 @@ load_dotenv(dotenv_path=Path('./.env'))
 rod = int(os.getenv('rod'))-1
 user_name = os.getenv('user_name')
 user_input = True if os.getenv('user_input') == "True" else False
+auto_fish = True if os.getenv('auto_fish') == "True" else False
 monitor_index = int(os.getenv('monitor_index'))
+tesseract_read = True if os.getenv('tesseract_read') == "True" else False
 
 ###########
 # default val
@@ -36,13 +38,16 @@ half = 1
 crop_factor = 1
 csv_start_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 start_time = time.time()
+colors = [(228, 224, 197), (163, 228, 103), (89, 198, 217), (231, 147, 232)]
+fish_color_current = [0, 0, 0, 0, 0]
+
 
 def get_mouse():
     x, y = mouse.position
     return (round(x), round(y))
 
 
-print("正在使用:{}\n魚竿:第{}支\n重新設定:{}".format(user_name,rod+1,user_input))
+print("正在使用:{}\n魚竿:第{}支\n重新設定:{}".format(user_name, rod+1, user_input))
 
 if user_input:
     input("指住左上角按Enter...")
@@ -74,8 +79,6 @@ target = [targetX, targetY]
 ###########
 # Static Fix Value
 ###########
-# top bar of game
-top = [(screen[1][0]-screen[0][0])/2, screen[0][1]-half]
 # 開始釣魚
 fish = [(screen[1][0]-screen[0][0])*0.8037848606+screen[0][0],
         (screen[1][1]-screen[0][1])*0.6292947559+screen[0][1]]
@@ -102,6 +105,9 @@ fix = {
              (screen[1][1]-screen[0][1])*0.7607142857+screen[0][1]]
 }
 
+cmd = [(screen[1][0]-screen[0][0])*0.5+screen[0][0],
+       (screen[1][1]-screen[0][1])*1.1+screen[0][1]]
+
 fish_name = ((screen[1][0]-screen[0][0])*0.6580706781+screen[0][0],
              (screen[1][1]-screen[0][1])*0.08117443869 +
              screen[0][1], (screen[1][0]-screen[0][0]) *
@@ -112,6 +118,8 @@ fish_price = ((screen[1][0]-screen[0][0])*0.7029608405+screen[0][0],
               screen[0][1], (screen[1][0]-screen[0][0]) *
               0.923591213+screen[0][0],
               (screen[1][1]-screen[0][1])*0.5215889465+screen[0][1])
+fish_color = [(screen[1][0]-screen[0][0])*0.7713097713+screen[0][0],
+              (screen[1][1]-screen[0][1])*0.2904411765+screen[0][1]]
 
 with mss() as sct:
     sct_img = sct.grab(sct.monitors[1])
@@ -122,17 +130,30 @@ with mss() as sct:
 ###########
 # Function
 ###########
+progress_time = 0
 count = 0
 repair = 0
 success = 0
 failed = 0
+isContinueFailed = False
+countinueFailedCount = 0
 status = ""
 
 
+def parse_time(ss):
+    if ss < 60:
+        return "{}秒".format(round(ss, 2))
+    elif ss < 60 * 60:
+        return "{}分".format(round(ss/60, 2))
+    else:
+        return "{}小時".format(round(ss/60/60, 2))
+
+
 def update_status():
-    global count, repair, success, failed, status
-    print("===================================\n報告:\n總計: {} | 修復: {}\n成功: {} | 失敗: {}\n{}\n===================================".format(
-        count, repair, success, failed, status))
+    global progress_time, count, repair, success, failed, status
+    progress_time = parse_time(time.time() - start_time)
+    print("===================================\n報告: {}\n總計: {} | 修復: {}\n成功: {} | 失敗: {}\n{}\n白: {} | 綠: {} | 藍: {} | 紫: {} | 其他: {}\n===================================".format(
+        progress_time, count, repair, success, failed, status, fish_color_current[0], fish_color_current[1], fish_color_current[2], fish_color_current[3], fish_color_current[4]))
 
 
 def add_csv(list_of_elem,  user_name=user_name):
@@ -156,32 +177,38 @@ def getColor(x, y):
 
 
 def getImageText(arr, arr2, this_time):
-    global status, count
-    (x, y, x2, y2) = arr
-    (nx, ny, nx2, ny2) = arr2
-    with mss() as sct:
-        sct_img = sct.grab(sct.monitors[monitor_index])
-        x = x*crop_factor
-        y = y*crop_factor
-        x2 = x2*crop_factor
-        y2 = y2*crop_factor
-        nx = nx*crop_factor
-        ny = ny*crop_factor
-        nx2 = nx2*crop_factor
-        ny2 = ny2*crop_factor
-        # Convert to PIL.Image
-        img = Image.frombytes("RGB", sct_img.size,
-                              sct_img.bgra, "raw", "BGRX").crop((x, y, x2, y2))
-        img2 = Image.frombytes("RGB", sct_img.size,
-                               sct_img.bgra, "raw", "BGRX").crop((nx, ny, nx2, ny2))
-        # img.save("./images/name/{}_{}.jpg".format(start_time, count))
-        # img2.save("./images/price/{}_{}.jpg".format(start_time, count))
-        name = pytesseract.image_to_string(img, lang='chi_tra').replace(
-            '\n', '').replace(' ', '').strip().strip()
-        price = pytesseract.image_to_string(img2, lang='digits').replace(
-            '\n', '').replace(' ', '').strip().strip()
-        add_csv(["true", name, price, this_time, csv_start_time])
-        status = ("釣到! %s秒\n名稱: {}\n價錢: {}".format(name, price) %
+    global tesseract_read, status, count
+    if tesseract_read:
+        (x, y, x2, y2) = arr
+        (nx, ny, nx2, ny2) = arr2
+        with mss() as sct:
+            sct_img = sct.grab(sct.monitors[monitor_index])
+            x = x*crop_factor
+            y = y*crop_factor
+            x2 = x2*crop_factor
+            y2 = y2*crop_factor
+            nx = nx*crop_factor
+            ny = ny*crop_factor
+            nx2 = nx2*crop_factor
+            ny2 = ny2*crop_factor
+            # Convert to PIL.Image
+            img = Image.frombytes("RGB", sct_img.size,
+                                  sct_img.bgra, "raw", "BGRX").crop((x, y, x2, y2))
+            img2 = Image.frombytes("RGB", sct_img.size,
+                                   sct_img.bgra, "raw", "BGRX").crop((nx, ny, nx2, ny2))
+            # img.save("./images/name/{}_{}.jpg".format(start_time, count))
+            # img2.save("./images/price/{}_{}.jpg".format(start_time, count))
+            name = pytesseract.image_to_string(img, lang='chi_tra').replace(
+                '\n', '').replace(' ', '').strip().strip()
+            price = pytesseract.image_to_string(img2, lang='digits').replace(
+                '\n', '').replace(' ', '').strip().strip()
+            add_csv(["true", name, price, this_time, csv_start_time])
+            status = ("釣到! %s秒\n名稱: {}\n價錢: {}".format(name, price) %
+                      (this_time))
+        update_status()
+    else:
+        add_csv(["true", "", "", this_time, csv_start_time])
+        status = ("釣到! %s秒" %
                   (this_time))
         update_status()
 
@@ -202,17 +229,8 @@ def fishing():
     update_status()
 
 
-def enable_screen():
-    x, y = top
-    pyautogui.moveTo(x, y)
-    pyautogui.click()
-
-
 def main():
-    global count, repair, success, failed, status
-    # enable the game view
-    enable_screen()
-    time.sleep(1)
+    global count, repair, success, failed, isContinueFailed, countinueFailedCount, status, fish_color_current
 
     # do fish
     for n in range(0, 100000000):
@@ -222,6 +240,13 @@ def main():
         # check the rod failed
         time.sleep(3)
         if getColor(fix["bag"][0], fix["bag"][1]) == (227, 64, 65):
+            if isContinueFailed:
+                countinueFailedCount += 1
+                if countinueFailedCount >= 5:
+                    status = "沒有錢了"
+                    update_status()
+                    break
+            isContinueFailed = True
             status = "釣竿失敗"
             repair = repair + 1
             update_status()
@@ -241,47 +266,76 @@ def main():
                 time.sleep(2.5-x)
             continue
 
-        # checking
-        status = "驗查中"
-        update_status()
-
-        start_time = time.time()
-        for k in range(0, 100000000):
-            if(time.time()-start_time > 60):
-                status = (
-                    "超過60秒沒有動作!重新開始")
-                update_status()
-                break
-            if getColor(target[0], target[1]) == (255, 255, 255):
-                status = ("有感嘆號,釣緊")
-                update_status()
-                move(get)
-                pyautogui.click()
-                while True:
+        ok_to_fish = False
+        isContinueFailed = False
+        countinueFailedCount = 0
+        # auto fish or pick fish
+        if not auto_fish:
+            status = "等待中"
+            update_status()
+            move(cmd)
+            pyautogui.click()
+            if input("啱用嗎?啱用打1,唔啱用按Enter") == "1":
+                ok_to_fish = True
+        if ok_to_fish or auto_fish:
+            # checking
+            isContinueFailed = False
+            status = "驗查中"
+            update_status()
+            start_time = time.time()
+            for k in range(0, 100000000):
+                if(time.time()-start_time > 60):
+                    status = (
+                        "超過60秒沒有動作!重新開始")
+                    update_status()
                     if getColor(keep[0], keep[1]) == (65, 197, 243) or getColor(keep[0], keep[1]) == (255, 199, 29):
-                        count = count+1
-                        success = success + 1
-                        update_status()
-                        this_time = round(time.time() - start_time, 2)
-                        # get the image (name)
-                        getImageText(fish_name, fish_price, this_time)
-                        # wait for keep button
                         move(keep)
                         pyautogui.click()
                         time.sleep(0.5)
-                        break
-                    # 斷線
-                    elif getColor(fix["bag"][0], fix["bag"][1]) == (227, 64, 65):
-                        count = count+1
-                        failed = failed + 1
-                        this_time = round(time.time() - start_time, 2)
-                        status = ("失敗! %s秒" %
-                                  (this_time))
-                        update_status()
-                        add_csv(
-                            ["false", "", "", this_time, csv_start_time])
-                        break
-                break
+                    break
+                if getColor(target[0], target[1]) == (255, 255, 255):
+                    status = ("有感嘆號,釣緊")
+                    update_status()
+                    move(get)
+                    pyautogui.click()
+                    while True:
+                        if getColor(keep[0], keep[1]) == (65, 197, 243) or getColor(keep[0], keep[1]) == (255, 199, 29):
+                            count += 1
+                            success += 1
+                            color_index = 4
+                            try:
+                                color_index = colors.index(
+                                    getColor(fish_color[0], fish_color[1]))
+                            except:
+                                pass
+                            fish_color_current[color_index] += 1
+                            update_status()
+                            this_time = round(time.time() - start_time, 2)
+                            # get the image (name)
+                            getImageText(fish_name, fish_price, this_time)
+                            # wait for keep button
+                            move(keep)
+                            pyautogui.click()
+                            time.sleep(0.5)
+                            break
+                        # 斷線
+                        elif getColor(fix["bag"][0], fix["bag"][1]) == (227, 64, 65):
+                            count = count+1
+                            failed = failed + 1
+                            this_time = round(time.time() - start_time, 2)
+                            status = ("失敗! %s秒" %
+                                      (this_time))
+                            update_status()
+                            add_csv(
+                                ["false", "", "", this_time, csv_start_time])
+                            break
+                    break
+        else:
+            status = ("唔啱用!")
+            update_status()
+            move(get)
+            pyautogui.click()
+            time.sleep(1)
 
 
 input("按Enter開始")

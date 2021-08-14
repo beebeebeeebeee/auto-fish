@@ -1,5 +1,6 @@
 import pickle
 import os
+import itertools 
 from dotenv import load_dotenv
 from pyautogui import *
 import pyautogui
@@ -138,7 +139,11 @@ failed = 0
 isContinueFailed = False
 countinueFailedCount = 0
 status = ""
+interrupted = False
 
+def signal_handler(signal, frame):
+    global interrupted
+    interrupted = True
 
 def parse_time(ss):
     if ss < 60:
@@ -151,9 +156,10 @@ def parse_time(ss):
 
 def update_status():
     global progress_time, count, repair, success, failed, status
+    successRate = 0 if count == 0 else str(round((success/count *100),2))
     progress_time = parse_time(time.time() - start_time)
-    print("===================================\n報告: {}\n總計: {} | 修復: {}\n成功: {} | 失敗: {}\n{}\n白: {} | 綠: {} | 藍: {} | 紫: {} | 其他: {}\n===================================".format(
-        progress_time, count, repair, success, failed, status, fish_color_current[0], fish_color_current[1], fish_color_current[2], fish_color_current[3], fish_color_current[4]))
+    print("===================================\n報告: {}\n總計: {} | 修復: {} | 總計/修復率: {}\n成功: {} | 失敗: {} | 成功率: {}%\n{}\n白: {} | 綠: {} | 藍: {} | 紫: {} | 其他: {}\n===================================".format(
+        progress_time, count, repair, round(count/(repair+1)), success, failed, successRate, status, fish_color_current[0], fish_color_current[1], fish_color_current[2], fish_color_current[3], fish_color_current[4]))
 
 
 def add_csv(list_of_elem,  user_name=user_name):
@@ -230,10 +236,13 @@ def fishing():
 
 
 def main():
-    global count, repair, success, failed, isContinueFailed, countinueFailedCount, status, fish_color_current
+    global count, repair, success, failed, isContinueFailed, countinueFailedCount, status, fish_color_current, interrupted
 
     # do fish
-    for n in range(0, 100000000):
+    for _ in itertools.count(): 
+        if interrupted:
+            print("已停止")
+            break
         time.sleep(0.1)
         fishing()
 
@@ -283,7 +292,7 @@ def main():
             status = "驗查中"
             update_status()
             start_time = time.time()
-            for k in range(0, 100000000):
+            for _ in itertools.count(): 
                 if(time.time()-start_time > 60):
                     status = (
                         "超過60秒沒有動作!重新開始")

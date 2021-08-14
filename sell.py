@@ -35,6 +35,8 @@ start_time = time.time()
 sell_color = [[(228, 224, 197)], [(228, 224, 197), (163, 228, 103)], [
     (228, 224, 197), (163, 228, 103), (89, 198, 217)]]
 
+BUTTON_BLUE = (65, 197, 243)
+START_WAIT_TIME = 0
 
 def get_mouse():
     x, y = mouse.position
@@ -65,6 +67,12 @@ def click(val):
     pyautogui.click()
     time.sleep(0.2)
 
+def click_fast(val):
+    # enable_screen()
+    x, y = val
+    pyautogui.moveTo(x, y)
+    pyautogui.click()
+
 
 if user_input:
     input("指住左上角按Enter...")
@@ -90,56 +98,83 @@ sort = [(screen[1][0]-screen[0][0])*0.9726027397+screen[0][0],
 sell1 = [(screen[1][0]-screen[0][0])*0.6733403583+screen[0][0],
          (screen[1][1]-screen[0][1])*0.9345794393+screen[0][1]]
 sell2 = [(screen[1][0]-screen[0][0])*0.4457323498+screen[0][0],
-         (screen[1][1]-screen[0][1])*0.7551401869+screen[0][1]]
+         (screen[1][1]-screen[0][1])*0.7651401869+screen[0][1]]
+sell3 = [(screen[1][0]-screen[0][0])*0.4457323498+screen[0][0],
+         (screen[1][1]-screen[0][1])*0.7451401869+screen[0][1]]
+
+sort_notice = [(screen[1][0]-screen[0][0])*0.8033403583+screen[0][0],
+               (screen[1][1]-screen[0][1])*0.9345794393+screen[0][1]]
 for y in radioY:
     for x in radioX:
         table.append([(screen[1][0]-screen[0][0])*x+screen[0][0],
                       (screen[1][1]-screen[0][1])*y+screen[0][1]])
 
+
+def storeBoard():
+    board = []
+    for each in table:
+        board.append(getColor(each[0], each[1]))
+    return board
+
+
+def hasChanges(b1, b2):
+    for index, each in enumerate(b1):
+        if each != b2[index]:
+            return True
+    return False
+
 have_color = False
 first_time = True
-times = 0.5
+count_fish = 0
 input("按Enter開始")
-print("%s秒後開始" % times)
-time.sleep(times)
+print("%s秒後開始" % START_WAIT_TIME)
+time.sleep(START_WAIT_TIME)
+
 while not have_color:
-    tem1 = getColor(table[0][0], table[0][1])
-    tem2 = getColor(table[3][0], table[3][1])
-    tem3 = getColor(table[8][0], table[8][1])
-    tem4 = getColor(table[11][0], table[11][1])
     print("驗查更新排序 (第一次)")
     click(sort)
     for i in range(100000):
-        if getColor(table[0][0], table[0][1]) != tem1 or getColor(table[3][0], table[3][1]) != tem2 or getColor(table[8][0], table[8][1]) != tem3 or getColor(table[11][0], table[11][1]) != tem4:
-            break
+        if not first_time:
+            if getColor(sort_notice[0], sort_notice[1]) != BUTTON_BLUE:
+                break
+        else:
+            tem1 = storeBoard()
+            if hasChanges(tem1, storeBoard()):
+                break
+    
     if first_time:
         first_time = False
     else:
-        tem1 = getColor(table[0][0], table[0][1])
-        tem2 = getColor(table[3][0], table[3][1])
-        tem3 = getColor(table[8][0], table[8][1])
-        tem4 = getColor(table[11][0], table[11][1])
         print("驗查更新排序 (第二次)")
         click(sort)
         for i in range(100000):
-            if getColor(table[0][0], table[0][1]) != tem1 or getColor(table[3][0], table[3][1]) != tem2 or getColor(table[8][0], table[8][1]) != tem3 or getColor(table[11][0], table[11][1]) != tem4:
+            if getColor(sort_notice[0], sort_notice[1]) == BUTTON_BLUE:
+                break
+        for i in range(100000):
+            if getColor(sort_notice[0], sort_notice[1]) != BUTTON_BLUE:
                 break
     print("驗查魚類")
+    this_fish = 0
     for each in table:
         if getColor(each[0], each[1]) in sell_color[sell_option]:
-            click(each)
+            click_fast(each)
+            count_fish += 1
+            this_fish += 1
         else:
             have_color = True
             break
-    print("賣魚")
+    print("賣魚 {}/{}".format(this_fish, count_fish))
     click(sell1)
     for i in range(100000):
-        if getColor(sell2[0], sell2[1]) == (65, 197, 243):
+        if getColor(sell2[0], sell2[1]) == BUTTON_BLUE:
             break
     print("確定賣魚")
     click(sell2)
     for i in range(100000):
-        if getColor(sell2[0], sell2[1]) == (65, 197, 243):
+        if getColor(sell2[0], sell2[1]) != BUTTON_BLUE:
+            break
+    for i in range(100000):
+        if getColor(sell3[0], sell3[1]) == BUTTON_BLUE:
             break
     print("完成賣魚")
-    click(sell2)
+    click(sell3)

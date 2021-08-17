@@ -37,8 +37,10 @@ class Play():
         self.repair = 0
         self.success = 0
         self.failed = 0
-        self.isContinueFailed = False
-        self.continueFailedCount = 0
+        self.is_continue_failed = False
+        self.continue_failed_count = 0
+        self.is_continue_failed_fishing = False
+        self.continue_failed_count_fishing = 0
         self.status = ""
 
     def get_mouse(self):
@@ -173,13 +175,13 @@ class Play():
             # check the rod failed
             time.sleep(3)
             if self.getColor(self.fix["bag"][0], self.fix["bag"][1]) == (227, 64, 65):
-                if self.isContinueFailed:
-                    self.continueFailedCount += 1
-                    if self.continueFailedCount >= 5:
+                if self.is_continue_failed:
+                    self.continue_failed_count += 1
+                    if self.continue_failed_count >= 5:
                         self.status = "沒有錢了，即將停止程序。"
                         self.update_status()
                         exit()
-                self.isContinueFailed = True
+                self.is_continue_failed = True
                 self.status = "釣竿失敗"
                 self.repair += 1
                 self.update_status()
@@ -200,8 +202,8 @@ class Play():
                 continue
 
             ok_to_fish = False
-            self.isContinueFailed = False
-            self.continueFailedCount = 0
+            self.is_continue_failed = False
+            self.continue_failed_count = 0
             # auto fish or pick fish
             if not self.auto_fish:
                 self.status = "等待中"
@@ -212,21 +214,28 @@ class Play():
                     ok_to_fish = True
             if ok_to_fish or self.auto_fish:
                 # checking
-                self.isContinueFailed = False
+                self.is_continue_failed = False
                 self.status = "驗查中"
                 self.update_status()
                 fishing_time = time.time()
                 for _ in itertools.count():
                     if(time.time()-fishing_time > 60):
-                        self.status = (
-                            "超過60秒沒有動作!重新開始")
-                        self.update_status()
-                        if self.getColor(self.keep[0], self.keep[1]) == (65, 197, 243) or self.getColor(self.keep[0], self.keep[1]) == (255, 199, 29):
-                            self.move(self.keep)
-                            self.click()
-                            time.sleep(0.5)
-                        break
+                        if self.continue_failed_count_fishing >= 4:
+                            self.status = "有嚴重問題，即將停止程序。"
+                            self.update_status()
+                            exit()
+                        else:
+                            self.continue_failed_count_fishing += 1
+                            self.status = (
+                                "超過60秒沒有動作!重新開始")
+                            self.update_status()
+                            if self.getColor(self.keep[0], self.keep[1]) == (65, 197, 243) or self.getColor(self.keep[0], self.keep[1]) == (255, 199, 29):
+                                self.move(self.keep)
+                                self.click()
+                                time.sleep(0.5)
+                            break
                     if self.getColor(self.target[0], self.target[1]) == (255, 255, 255):
+                        self.continue_failed_count_fishing = 0
                         self.status = ("有感嘆號,釣緊")
                         self.update_status()
                         self.move(self.get)

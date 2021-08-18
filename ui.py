@@ -2,14 +2,14 @@ from pynput.mouse import Controller
 from dotenv import load_dotenv
 from pathlib import Path
 from pyautogui import *
-from PIL import Image
-from mss import mss
+# from PIL import Image
+# from mss import mss
 import itertools
-import pyautogui
+# import pyautogui
 import keyboard
 import pickle
-import time
-import os
+# import time
+# import os
 import tkinter as tk
 from tkinter import ttk
 
@@ -17,11 +17,11 @@ import rx
 from rx.scheduler import ThreadPoolScheduler
 
 load_dotenv(dotenv_path=Path('./.env'))
-pyautogui.PAUSE = 0
+# pyautogui.PAUSE = 0
 mouse = Controller()
 
-
 class AutoFishGUI:
+    font_xs = ('Helvatical bold', 16)
     font = ('Helvatical bold', 20)
     font_lg = ('Helvatical bold', 40)
 
@@ -58,12 +58,12 @@ class AutoFishGUI:
         self.tabControl.add(self.tab1, text='設置')
         self.tabControl.add(self.tab2, text='狀態監視器')
 
-        self.profileList.insert(0, "bee", "tiffy")
+        # self.profileList.insert(0, "bee", "tiffy")
 
     def init_tab1(self, tab):
         self.tabControl.pack(expand=1, fill="both")
 
-        self.profileList = tk.Listbox(tab, height=14, width=15, font=self.font)
+        self.profileList = tk.Listbox(tab, height=14, width=15, font=self.font_xs)
         self.profileList.grid(row=0, column=0, rowspan=14, columnspan=2)
         self.profileList.bind("<<ListboxSelect>>", self.select_profile)
 
@@ -88,57 +88,86 @@ class AutoFishGUI:
         tk.Button(tab, text="調整位置", command=lambda: self.adjust_position(
             self.target)).grid(row=3, column=4)
 
-        tk.Button(tab, height=3, width=9, text="開始釣魚", font=self.font_lg, command=self.start_fish).grid(row=5, column=2, columnspan=3)
+        tk.Button(tab, height=1, width=14, text="開始釣魚", font=self.font,
+                  command=self.start_fish).grid(row=5, column=2, columnspan=3)
+        tk.Button(tab, height=1, width=14, text="Copy Profile", font=self.font,
+                  command=self.copy_profile).grid(row=6, column=2, columnspan=3)
 
     def init_tab2(self, tab):
         pass
 
     def select_profile(self, event):
-        try:
-            selection = event.widget.get(event.widget.curselection()[0])
-            print(selection)
+        selection = event.widget.get(event.widget.curselection()[0])
+        print(selection)
 
-            file = open(f'./data/{selection}_input.txt', 'rb')
-            dict = pickle.load(file)
-            self.rod.set(int(os.getenv('rod'))-1)
-            self.screen1.set([dict['screenX'], dict['screenY']])
-            self.screen2.set([dict['screenX2'], dict['screenY2']])
-            self.target.set([dict['targetX'], dict['targetY']])
+        try:
+            file = open('data.txt', 'rb')
             file.close()
         except():
-            pass
+            file = open('data.txt', 'wb')
+            file.close()
+        
+        file = open('data.txt', 'rb')
+        
+        dict = pickle.load(file)
+        self.rod.set(int(os.getenv('rod'))-1)
+        self.screen1.set([dict['screenX'], dict['screenY']])
+        self.screen2.set([dict['screenX2'], dict['screenY2']])
+        self.target.set([dict['targetX'], dict['targetY']])
+        file.close()
 
     def adjust_position(self, target):
         def running(_):
+            self.adjust_current_stoped = False
             for _ in itertools.count():
                 if keyboard.is_pressed('q'):
-                    target.set(self.get_mouse())
+                    position = self.get_mouse()
+                    target.set(position)
                     break
                 if keyboard.is_pressed('c'):
                     target.set(self.adjust_current_prev)
                     break
-                if self.adjust_current == None:
+                if self.adjust_current_stoped:
                     break
 
         def on_task_done():
             self.adjust_current = None
-        
-        if(hasattr(self,'adjust_current') and self.adjust_current != None):
+
+        if(hasattr(self, 'adjust_current') and self.adjust_current != None):
             self.adjust_current.set(self.adjust_current_prev)
-            self.adjust_current = None
+
+        self.adjust_current_stoped = True
         self.adjust_current = target
         self.adjust_current_prev = target.get()
         target.set("按 Q 設置位置或按 C 取消")
         self.master.update()
         rx.just(1).subscribe(
-         on_next=running,
-         on_completed=lambda: self.master.after(5, on_task_done),
-         scheduler=self.pool_scheduler
+            on_next=running,
+            on_completed=lambda: self.master.after(5, on_task_done),
+            scheduler=self.pool_scheduler
         )
-
 
     def start_fish(self):
         pass
+
+    def copy_profile(self):
+        profile_name = tk.StringVar()
+
+        def done():
+            if(x := profile_name.get()) != "":
+                win.destroy()
+                self.profileList.insert(0, x)
+
+        win = tk.Toplevel()
+        win.wm_title("Profile Name")
+        win.wm_geometry("300x100")
+
+        tk.Entry(win, textvariable=profile_name,
+                 font=self.font).grid(row=0, column=0)
+
+        tk.Button(win, text="Okay", command=done,
+                   font=self.font).grid(row=1, column=0)
+
 
 if __name__ == "__main__":
     root = tk.Tk()

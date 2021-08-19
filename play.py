@@ -62,36 +62,40 @@ class Play():
         else:
             return "{}小時".format(round(time/60/60, 2))
 
-    def main(self):
-        print("正在使用:{}\n魚竿:第{}支\n重新設定:{}".format(
-            self.user_name, self.rod+1, self.user_input))
-        if self.user_input:
-            input("指住左上角按Enter...")
-            (self.screenX, self.screenY) = self.get_mouse()
-            input("指住右下角按Enter...")
-            (self.screenX2, self.screenY2) = self.get_mouse()
-            input("指住感嘆號按Enter...")
-            (self.targetX, self.targetY) = self.get_mouse()
-            self.dict = {'screenX': self.screenX, 'screenY': self.screenY, 'screenX2': self.screenX2, 'screenY2': self.screenY2,
-                         'targetX': self.targetX, 'targetY': self.targetY}
-            file = open('./data/{}_input.txt'.format(self.user_name), 'wb')
-            pickle.dump(self.dict, file)
-            file.close()
+    def main(self, props = None):
+        if(props == None):
+            print("正在使用:{}\n魚竿:第{}支\n重新設定:{}".format(
+                self.user_name, self.rod+1, self.user_input))
+            if self.user_input:
+                input("指住左上角按Enter...")
+                (self.screenX, self.screenY) = self.get_mouse()
+                input("指住右下角按Enter...")
+                (self.screenX2, self.screenY2) = self.get_mouse()
+                input("指住感嘆號按Enter...")
+                (self.targetX, self.targetY) = self.get_mouse()
+                self.dict = {'screenX': self.screenX, 'screenY': self.screenY, 'screenX2': self.screenX2, 'screenY2': self.screenY2,
+                            'targetX': self.targetX, 'targetY': self.targetY}
+                file = open('./data/{}_input.txt'.format(self.user_name), 'wb')
+                pickle.dump(self.dict, file)
+                file.close()
+            else:
+                file = open('./data/{}_input.txt'.format(self.user_name), 'rb')
+                dict = pickle.load(file)
+                self.screenX = dict['screenX']
+                self.screenY = dict['screenY']
+                self.screenX2 = dict['screenX2']
+                self.screenY2 = dict['screenY2']
+                self.targetX = dict['targetX']
+                self.targetY = dict['targetY']
+                file.close()
+            self.screen = [[self.screenX, self.screenY],
+                        [self.screenX2, self.screenY2]]
+            # 驚嘆號位置
+            self.target = [self.targetX, self.targetY]
         else:
-            file = open('./data/{}_input.txt'.format(self.user_name), 'rb')
-            dict = pickle.load(file)
-            self.screenX = dict['screenX']
-            self.screenY = dict['screenY']
-            self.screenX2 = dict['screenX2']
-            self.screenY2 = dict['screenY2']
-            self.targetX = dict['targetX']
-            self.targetY = dict['targetY']
-            file.close()
-
-        self.screen = [[self.screenX, self.screenY],
-                       [self.screenX2, self.screenY2]]
-        # 驚嘆號位置
-        self.target = [self.targetX, self.targetY]
+            self.rod = props['rod']-1
+            self.screen = [props['screen1'],props['screen2']]
+            self.target = props['target']
         ###########
         # Static Fix Value
         ###########

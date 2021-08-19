@@ -62,7 +62,7 @@ class Play():
         else:
             return "{}小時".format(round(time/60/60, 2))
 
-    def main(self, props = None):
+    def ask_settings(self, props):
         if(props == None):
             print("正在使用:{}\n魚竿:第{}支\n重新設定:{}".format(
                 self.user_name, self.rod+1, self.user_input))
@@ -96,10 +96,11 @@ class Play():
             self.rod = props['rod']-1
             self.screen = [props['screen1'],props['screen2']]
             self.target = props['target']
-        ###########
+
+    def main(self, props = None):
+        self.ask_settings(props)
+        
         # Static Fix Value
-        ###########
-        # 開始釣魚
         self.fish = [(self.screen[1][0]-self.screen[0][0])*0.8037848606+self.screen[0][0],
                      (self.screen[1][1]-self.screen[0][1])*0.6292947559+self.screen[0][1]]
         # 收釣竿
@@ -145,7 +146,8 @@ class Play():
             sct_img = sct.grab(sct.monitors[1])
             if(sct_img.width > pyautogui.size().width):
                 self.crop_factor = sct_img.width/pyautogui.size().width
-        input("按Enter開始")
+        if __name__ == "__main__":
+            input("按Enter開始")
         self.start()
 
     def update_status(self):

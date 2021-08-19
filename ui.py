@@ -66,7 +66,7 @@ class AutoFishGUI:
         self.tabControl = ttk.Notebook(master)
 
         self.s = ttk.Style()
-        self.s.configure('My.TFrame', background='#FEFB22')
+        self.s.configure('My.TFrame', background='#FFFFFF')
 
         self.tab1 = ttk.Frame(self.tabControl, style='My.TFrame')
         self.tab2 = ttk.Frame(self.tabControl, style='My.TFrame')
@@ -82,18 +82,18 @@ class AutoFishGUI:
         self.tabControl.pack(expand=1, fill="both")
 
         self.profileList = tk.Listbox(
-            tab, height=14, width=15, font=self.font_xs)
+            tab, height=14, width=15, font=self.font_xs, )
         self.profileList.grid(row=0, column=0, rowspan=14, columnspan=2)
         self.profileList.bind("<<ListboxSelect>>", self.select_profile)
 
-        tk.Label(tab, text="魚竿", font=self.font).grid(row=1, column=2)
-        tk.Label(tab, text="左上角", font=self.font).grid(row=2, column=2)
-        tk.Label(tab, text="右下角", font=self.font).grid(row=3, column=2)
-        tk.Label(tab, text="感嘆號", font=self.font).grid(row=4, column=2)
+        tk.Label(tab, text="魚竿", font=self.font_xs, justify=tk.RIGHT).grid(row=1, column=2)
+        tk.Label(tab, text="左上角", font=self.font_xs, justify=tk.RIGHT).grid(row=2, column=2)
+        tk.Label(tab, text="右下角", font=self.font_xs, justify=tk.RIGHT).grid(row=3, column=2)
+        tk.Label(tab, text="感嘆號", font=self.font_xs, justify=tk.RIGHT).grid(row=4, column=2)
 
         self.current_profile_name = tk.StringVar()
         tk.Entry(tab, textvariable=self.current_profile_name,
-                 state='disabled').grid(row=0, column=2, columnspan=3)
+                 state='disabled', width=35, justify=tk.LEFT).grid(row=0, column=2, columnspan=3)
         self.rod = tk.IntVar()
         e = tk.Entry(tab, textvariable=self.rod)
         e.grid(row=1, column=3)
@@ -115,9 +115,9 @@ class AutoFishGUI:
         tk.Button(tab, text="調整位置", command=lambda: self.adjust_position(
             self.target, 'target')).grid(row=4, column=4)
 
-        tk.Button(tab, height=1, width=14, text="開始釣魚", font=self.font,
+        tk.Button(tab, height=1, width=22, text="開始釣魚", font=self.font,
                   command=self.start_fish).grid(row=5, column=2, columnspan=3)
-        tk.Button(tab, height=1, width=14, text="Copy Profile", font=self.font,
+        tk.Button(tab, height=1, width=22, text="Copy Profile", font=self.font,
                   command=self.copy_profile).grid(row=6, column=2, columnspan=3)
 
     def init_tab2(self, tab):

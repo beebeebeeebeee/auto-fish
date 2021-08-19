@@ -207,14 +207,20 @@ class AutoFishGUI:
                   font=self.font).grid(row=1, column=0)
 
     def start_fish(self):
+        def do_task(_):
+            play.Play().main(d)
+             
+        def on_task_done():
+            pass
+
         with open(self.writepath, "r") as f:
             d = json.load(f)[self.current_profile_name.get()]
         print(d)
         rx.just(1).subscribe(
-            on_completed=play.Play().main(d),
+            on_next=do_task, 
+            on_completed=lambda: self.master.after(5, on_task_done),
             scheduler=self.pool_scheduler
         )
-        play.Play().main(d)
 
 if __name__ == "__main__":
     root = tk.Tk()
